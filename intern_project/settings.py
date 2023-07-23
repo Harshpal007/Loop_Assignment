@@ -49,6 +49,17 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'loop_database',
+        'USER': 'harshpal',  
+        'PASSWORD': 'Merima@007',  
+        'HOST': 'localhost',  
+        'PORT': '5432',  
+    }
+}
+
 ROOT_URLCONF = 'intern_project.urls'
 
 TEMPLATES = [

@@ -7,8 +7,10 @@ __pycache__/
 
 # Ignore static and media files (if not using a CDN)
 /static/
-/media/
-
+/media
+# /venv
+venv
+# .venv
 # Ignore database file (if using SQLite)
 db.sqlite3
 
