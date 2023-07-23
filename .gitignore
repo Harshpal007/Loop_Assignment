@@ -1,0 +1,30 @@
+# Ignore Python bytecodes and cache files
+*.pyc
+__pycache__/
+
+# Ignore development settings
+*.env
+
+# Ignore static and media files (if not using a CDN)
+/static/
+/media/
+
+# Ignore database file (if using SQLite)
+db.sqlite3
+
+# Ignore local development configuration (if using settings_local.py)
+settings_local.py
+
+# Ignore other temporary or sensitive files
+*.swp
+*.swo
+*.log
+*.pyo
+*.bak
+*.orig
+*.psd
+*.db
+*.db.sqlite3-journal
+*.idea/
+*.vscode/
+
