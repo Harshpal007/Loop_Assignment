@@ -1,7 +1,9 @@
 # Ignore Python bytecodes and cache files
 *.pyc
 __pycache__/
-
+migrations
+Menu hours.csv
+bq-results-20230125-202210-1674678181880.csv
 # Ignore development settings
 *.env
 
