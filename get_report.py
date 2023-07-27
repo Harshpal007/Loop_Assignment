@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import pytz
 import csv
+import random
 from io import StringIO
 from datetime import datetime , timedelta
 from dateutil.parser import parse
@@ -11,8 +12,13 @@ from django.conf import settings
 import django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "intern_project.settings")
 django.setup()
-from intern_project.models import menu_hours,time_zone
+from intern_project.models import menu_hours,time_zone,Report
 
+
+
+def generate_random_string(length=10):
+    letters_and_digits = string.ascii_letters + string.digits
+    return ''.join(random.choice(letters_and_digits) for i in range(length))
 
 
 
@@ -182,7 +188,8 @@ def generate_report():
     writer = csv.writer(output)
     i=0
     for store_id in unique_store_id:
-        
+        if i>100:
+            break
         uptime_last_hour = get_uptime_hour(store_id,csv_file)
         uptime_last_day,total_menu_hours_day = get_uptime_lastday(store_id,csv_file)
         uptime_last_week,total_menu_hours_week = get_uptime_last_week(store_id,csv_file)
@@ -191,8 +198,21 @@ def generate_report():
         downtime_last_week=abs(total_menu_hours_week-uptime_last_week)
         row=[store_id,uptime_last_hour,uptime_last_day,uptime_last_week,downtime_last_hour,downtime_last_day,downtime_last_week]
         writer.writerow(row)
-        
-    print(output.getvalue())
+        i+=1
+    # print(output.getvalue())
+    report_csv_content = output.getvalue()
+    report_file_name = f"report_{generate_random_string(8)}.csv"
+    report_id = generate_random_string()
+    report_file_path = os.path.join('csv_reports/', report_file_name)
+
+    with open(report_file_path, 'w') as report_file:
+        report_file.write(report_csv_content)
+
+
+    new_report = Report(csv_report_file=report_file_path)
+    new_report.save()
+
+    return report_id
 
     
 
