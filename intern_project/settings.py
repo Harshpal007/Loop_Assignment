@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'intern_project',
     'rest_framework',
+    
 ]
 
 MIDDLEWARE = [
@@ -66,7 +67,7 @@ DATABASES = {
 ROOT_URLCONF = 'intern_project.urls'
 
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/1'
 
 
 MEDIA_URL = '/media/'

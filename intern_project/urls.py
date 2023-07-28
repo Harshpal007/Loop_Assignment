@@ -22,6 +22,6 @@ urlpatterns = [
     #trigger report generation
     path('trigger_report/', trigger_report, name='trigger_report'),
     #get report
-    path('get_report/', get_report, name='get_report'),
+    path('get_report/<int:report_id>', get_report, name='get_report'),
 
 ]

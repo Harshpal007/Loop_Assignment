@@ -1,17 +1,27 @@
 import os,sys
 parent_directory = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 print(parent_directory)
+import string
+import random
 sys.path.append(parent_directory)
-from get_report import generate_report
+from intern_project.models import Report
+from .fetch_report import generate_report
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework.status import HTTP_202_ACCEPTED,HTTP_404_NOT_FOUND, HTTP_200_OK
 
-@api_view(['POST'])
-def trigger_report(request):
-    report_id = generate_report.delay()
+def generate_random_string():
+    return random.randrange(1,1000000000)
 
-    return Response({"report_id": report_id}, status=HTTP_202_ACCEPTED)
+
+@api_view(['GET'])
+def trigger_report(request):
+    # report_id = int()
+    report = Report.objects.create(status="Running",report_id=generate_random_string())
+
+    generate_report.delay(report.id)
+
+    return Response({"report_id": report.id}, status=HTTP_202_ACCEPTED)
 
 
 
@@ -19,28 +29,22 @@ def trigger_report(request):
 
 
 @api_view(['GET'])
-def get_report(request):
-    report_id = request.query_params.get('report_id', None)
-    if not report_id:
-        return Response({"error": "report_id parameter is required."}, status=HTTP_404_NOT_FOUND)
+def get_report(request,report_id):
+    try:
+        print(report_id)
+        report_id = request.query_params.get('report_id')
+        report = Report.objects.get(report_id=report_id)
+        csv_file_path='reports'
 
-    # Check the status of the Celery task
-    task = generate_report.AsyncResult(report_id)
-    if task.state == 'SUCCESS':
-        # Report generation is complete, and CSV data is ready.
-        csv_data = "store_id, uptime_last_hour, uptime_last_day, update_last_week, downtime_last_hour, downtime_last_day, downtime_last_week\n"
-        # Add the CSV data rows here...
-
-        # Return the report status and CSV data in the response
-        response_data = {
-            "report_id": report_id,
-            "status": "Complete",
-            "csv_data": csv_data,
-        }
-        return Response(response_data, status=HTTP_200_OK)
-    elif task.state == 'PENDING':
-        # Report generation is still running.
-        return Response({"status": "Running"}, status=HTTP_202_ACCEPTED)
-    else:
-        # Report generation has failed or some other state.
-        return Response({"status": "Error"}, status=HTTP_200_OK)
+        if report.status == "Running":
+            return Response({'status':'Running'})
+    
+        elif report.status =="Complete" and report.csv_file:
+            with open(csv_file_path, 'rb') as csv_file:
+                    response = HttpResponse(csv_file.read(), content_type='text/csv')
+                    response['Content-Disposition'] = f'attachment; filename="report_{report_id}.csv"'
+                    return response
+    except Report.DoesNotExist:
+        pass
+    
+    return Response({'status':'Report Not Found'},status=404)

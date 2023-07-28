@@ -5,8 +5,10 @@ import os
 import pytz
 import csv
 import random
+import string
 from io import StringIO
-from datetime import datetime , timedelta
+from celery import shared_task
+from datetime import datetime , timedelta , time
 from dateutil.parser import parse
 from django.conf import settings
 import django
@@ -60,14 +62,24 @@ def get_uptime_hour(store_id,csv_file):
     # current_timestamp = string_to_timestamp(current_time_str)
     
     current_day=current_timestamp.date().weekday()
+    current_date =current_timestamp.date()
 
     #fotr handling edge case of multiple menu hours
     menu_hours_range=menu_hours.objects.filter(store_id=store_id,weekday=current_day)
     menu_hours_range= list(menu_hours_range.values_list('start_time_local','end_time_local'))
+    flag=0
+    if len(menu_hours_range)==0:
+        menu_hours_range.append(datetime.combine(current_date,time(0,0)))
+        menu_hours_range.append(datetime.combine(current_date,time(23,59)))
+        flag=1
     uptime_minutes=0
     for range in menu_hours_range:
-        start_time=local_to_utc(store_id,range[0],current_timestamp)
-        end_time = local_to_utc(store_id,range[1],current_timestamp)
+        if flag==0:
+            start_time=local_to_utc(store_id,range[0],current_timestamp)
+            end_time = local_to_utc(store_id,range[1],current_timestamp)
+        else:
+            start_time = menu_hours_range[0]
+            end_time = menu_hours_range[1]
         if end_time.time()>=current_timestamp.time() and start_time.time()<=current_timestamp.time():
             two_hours_ago = current_timestamp -timedelta(hours=2)
             filtered_data = store_data[(store_data['timestamp_utc'] >= two_hours_ago) & (store_data['timestamp_utc'] <= current_timestamp)]
@@ -178,44 +190,41 @@ def get_uptime_last_week(store_id,csv_file):
     return uptime_last_week,total_menu_hours
 
 
-
-def generate_report():
+@shared_task
+def generate_report(report_id):
+    print("hii")
     file_path='store status.csv'
     csv_file = pd.read_csv(file_path)
     unique_store_id=csv_file['store_id'].unique()
     print(len(unique_store_id))
     output = StringIO()
     writer = csv.writer(output)
+
     i=0
-    for store_id in unique_store_id:
-        if i>100:
-            break
-        uptime_last_hour = get_uptime_hour(store_id,csv_file)
-        uptime_last_day,total_menu_hours_day = get_uptime_lastday(store_id,csv_file)
-        uptime_last_week,total_menu_hours_week = get_uptime_last_week(store_id,csv_file)
-        downtime_last_hour = 60-uptime_last_hour
-        downtime_last_day=abs(total_menu_hours_day-uptime_last_day)
-        downtime_last_week=abs(total_menu_hours_week-uptime_last_week)
-        row=[store_id,uptime_last_hour,uptime_last_day,uptime_last_week,downtime_last_hour,downtime_last_day,downtime_last_week]
-        writer.writerow(row)
-        i+=1
+    csv_file_path='reports/'
+    csv_file_name = f'report_{report_id}.csv'
+
+    csv_file_path = os.path.join(csv_file_path, csv_file_name)
+
+    with open(csv_file_path,'w',newline='') as csv_report:
+        for store_id in unique_store_id:
+            if i>10:
+                break
+            uptime_last_hour = get_uptime_hour(store_id,csv_file)
+            uptime_last_day,total_menu_hours_day = get_uptime_lastday(store_id,csv_file)
+            uptime_last_week,total_menu_hours_week = get_uptime_last_week(store_id,csv_file)
+            downtime_last_hour = 60-uptime_last_hour
+            downtime_last_day=abs(total_menu_hours_day-uptime_last_day)
+            downtime_last_week=abs(total_menu_hours_week-uptime_last_week)
+            row=[store_id,uptime_last_hour,uptime_last_day,uptime_last_week,downtime_last_hour,downtime_last_day,downtime_last_week]
+            writer.writerow(row)
+            i+=1
     # print(output.getvalue())
-    report_csv_content = output.getvalue()
-    report_file_name = f"report_{generate_random_string(8)}.csv"
-    report_id = generate_random_string()
-    report_file_path = os.path.join('csv_reports/', report_file_name)
-
-    with open(report_file_path, 'w') as report_file:
-        report_file.write(report_csv_content)
-
-
-    new_report = Report(csv_report_file=report_file_path)
-    new_report.save()
-
-    return report_id
-
     
-
+    report = Report.objects.get(report_id=report_id)
+    report.status = "Complete"
+    report.csv_file = csv_file_path
+    report.save()
 
 
 

@@ -4,7 +4,7 @@ import django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "intern_project.settings")
 django.setup()
 # settings.configure()
-
+from django.core.cache import cache
 
 
 
@@ -17,6 +17,7 @@ import csv
 
 
 def get_menuhours():
+    cache.clear()
     print("doing menu")
     with open('Menu hours.csv','r') as data:
         table = csv.DictReader(data)
@@ -43,5 +44,5 @@ def get_timezeon():
     print("timezone done")
 
 if __name__ == '__main__':
-    # get_menuhours()
+    get_menuhours()
     get_timezeon()
